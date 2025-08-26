@@ -1,289 +1,236 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>WorkChain • MVP</title>
-    <link rel="manifest" href="/manifest.json">
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', ()=> navigator.serviceWorker.register('/sw.js'));
-      }
-    </script>
-    <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-router-dom@6/umd/react-router-dom.development.js"></script>
-    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-  </head>
-  <body class="bg-slate-950 text-slate-100">
-    <div id="root"></div>
-    <script type="text/babel">
-      const { BrowserRouter, Routes, Route, Link, useNavigate } = ReactRouterDOM;
-      const API = "https://workchain-project-00.onrender.com"; // ✅ fixed backend URL
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WorkChain • MVP</title>
+  <link rel="manifest" href="/manifest.json" />
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () =>
+        navigator.serviceWorker.register('/sw.js')
+      );
+    }
+  </script>
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React + Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/react-router-dom@6/umd/react-router-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+  <div id="root"></div>
 
-      const ThemeCtx = React.createContext();
-      function ThemeProvider({children}){
-        const [theme, setTheme] = React.useState(localStorage.getItem('theme') || 'dark');
-        React.useEffect(()=>{
-          document.documentElement.classList.toggle('light', theme==='light');
-          document.body.className = theme==='light' ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100';
-          localStorage.setItem('theme', theme);
-        },[theme]);
-        return <ThemeCtx.Provider value={{theme, setTheme}}>{children}</ThemeCtx.Provider>;
-      }
+  <script type="text/babel">
 
-<script>
-  // Mobile console logger
-  (function() {
-    const logBox = document.createElement('div');
-    logBox.style.position = 'fixed';
-    logBox.style.bottom = '0';
-    logBox.style.left = '0';
-    logBox.style.width = '100%';
-    logBox.style.maxHeight = '40vh';
-    logBox.style.overflowY = 'auto';
-    logBox.style.background = 'rgba(0,0,0,0.85)';
-    logBox.style.color = '#0f0';
-    logBox.style.fontSize = '12px';
-    logBox.style.fontFamily = 'monospace';
-    logBox.style.zIndex = '999999';
-    logBox.style.padding = '4px';
-    document.body.appendChild(logBox);
+    const { BrowserRouter, Routes, Route, Link, useNavigate } = ReactRouterDOM;
 
-    function addLog(type, args) {
-      const msg = document.createElement('div');
-      msg.textContent = `[${type}] ` + args.map(a => typeof a==='object' ? JSON.stringify(a) : a).join(' ');
-      logBox.appendChild(msg);
-      logBox.scrollTop = logBox.scrollHeight;
+    const API = "https://workchain-project-00.onrender.com"; // 👈 backend ka link
+
+    // ---------------- API HOOKS ----------------
+    function useApi() {
+      const token = localStorage.getItem('token');
+      const h = token
+        ? { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+        : { 'Content-Type': 'application/json' };
+
+      const get = (u) => fetch(API + '/api' + u, { headers: h }).then(r => r.json());
+      const post = (u, b) => fetch(API + '/api' + u, {
+        method: 'POST', headers: h, body: JSON.stringify(b)
+      }).then(r => r.json());
+      const put = (u, b) => fetch(API + '/api' + u, {
+        method: 'PUT', headers: h, body: JSON.stringify(b)
+      }).then(r => r.json());
+
+      return { get, post, put };
     }
 
-    ['log','warn','error'].forEach(type => {
-      const orig = console[type];
-      console[type] = function(...args) {
-        orig.apply(console, args);
-        addLog(type, args);
+    function useApiAuthed() {
+      return useApi();
+    }
+
+    // ---------------- NAV ----------------
+    function Nav() {
+      const nav = [['/', 'Home'], ['/jobs', 'Jobs'], ['/post', 'Post'], ['/wallet', 'Wallet'], ['/profile', 'Profile']];
+      return (
+        <nav className="flex justify-between p-4 bg-indigo-600 text-white">
+          <div className="font-bold">WorkChain</div>
+          <div className="flex gap-4">
+            {nav.map(([to, label]) => (
+              <Link key={to} to={to} className="hover:underline">{label}</Link>
+            ))}
+            <Link to="/auth">Login</Link>
+          </div>
+        </nav>
+      );
+    }
+
+    // ---------------- PAGES ----------------
+    function Home() {
+      return (
+        <div className="p-6">
+          <h1 className="text-2xl font-bold">Hybrid freelancing with Pi-powered escrow</h1>
+          <p className="mt-2">Online + Offline jobs, Remote + Physical mode, Ratings, Wallet & more.</p>
+        </div>
+      );
+    }
+
+    function Auth() {
+      const api = useApi();
+      const nav = useNavigate();
+      const [email, setEmail] = React.useState('demo@workchain.app');
+      const [password, setPassword] = React.useState('demo123');
+      const [username, setUsername] = React.useState('demo');
+      const [mode, setMode] = React.useState('login');
+      const [status, setStatus] = React.useState('');
+
+      const doSignup = async () => {
+        const res = await api.post('/auth/signup', { username, email, password });
+        if (res.ok) {
+          setMode('login');
+          setStatus('Signup done, please login');
+        } else setStatus(res.error || 'Signup failed');
       };
-    });
 
-    window.addEventListener('error', e => {
-      addLog('error', [e.message, e.filename+':'+e.lineno]);
-    });
-  })();
-</script>
+      const doLogin = async () => {
+        const res = await api.post('/auth/login', { email, password });
+        if (res.ok) {
+          localStorage.setItem('token', res.token);
+          nav('/');
+        } else setStatus(res.error || 'Login failed');
+      };
 
-      function useApi(){
-        const token = localStorage.getItem('token');
-        const h = token ? { 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' } : { 'Content-Type':'application/json' };
-        const get = (u)=> fetch(API+'/api'+u, { headers:h }).then(r=>r.json());   // ✅ updated
-        const post = (u,b)=> fetch(API+'/api'+u,{ method:'POST', headers:h, body:JSON.stringify(b) }).then(r=>r.json());
-        const put = (u,b)=> fetch(API+'/api'+u,{ method:'PUT', headers:h, body:JSON.stringify(b) }).then(r=>r.json());
-        return { get, post, put };
-      }
+      return (
+        <div className="p-6 max-w-md mx-auto">
+          <h2 className="text-xl font-bold mb-4">{mode === 'login' ? 'Login' : 'Create account'}</h2>
+          {mode === 'signup' &&
+            <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Username" className="border p-2 mb-2 w-full" />
+          }
+          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="border p-2 mb-2 w-full" />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="border p-2 mb-2 w-full" />
+          <button onClick={mode === 'login' ? doLogin : doSignup} className="bg-indigo-600 text-white px-4 py-2 rounded w-full">
+            {mode === 'login' ? 'Login' : 'Sign Up'}
+          </button>
+          <button onClick={() => setMode(mode === 'login' ? 'signup' : 'login')} className="mt-2 text-sm underline">
+            {mode === 'login' ? 'Create account' : 'Have account? Login'}
+          </button>
+          <p className="mt-2 text-red-600">{status}</p>
+        </div>
+      );
+    }
 
-      function Nav(){
-        const { theme, setTheme } = React.useContext(ThemeCtx);
-        const nav = [['/','Home'], ['/jobs','Jobs'], ['/post','Post'], ['/wallet','Wallet'], ['/profile','Profile']];
-        return (
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="font-bold text-xl text-indigo-400">WorkChain</div>
-            <div className="flex items-center gap-3">
-              {nav.map(([to, label]) => <Link key={to} className="hover:underline" to={to}>{label}</Link>)}
-              <button className="px-3 py-1.5 rounded-lg bg-indigo-600" onClick={()=> setTheme(theme==='dark'?'light':'dark')}>{theme==='dark'?'Light':'Dark'}</button>
-              <Link className="px-3 py-1.5 rounded-lg bg-slate-800" to="/auth">Login</Link>
-            </div>
-          </div>
-        );
-      }
-
-      function Home(){
-        return (
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="rounded-2xl p-6 bg-slate-900 border border-slate-800">
-              <h1 className="text-2xl font-bold">Hybrid freelancing with Pi-powered escrow</h1>
-              <p className="text-slate-400">Online + Offline jobs, Remote + Physical mode, Ratings, Wallet & more.</p>
-              <div className="grid md:grid-cols-3 gap-4 mt-4">
-                <div className="p-4 bg-slate-800 rounded-xl">Online Work</div>
-                <div className="p-4 bg-slate-800 rounded-xl">Offline Work</div>
-                <div className="p-4 bg-slate-800 rounded-xl">Premium</div>
+    function Jobs() {
+      const api = useApi();
+      const [jobs, setJobs] = React.useState([]);
+      const [q, setQ] = React.useState('');
+      React.useEffect(() => { api.get('/jobs').then(r => setJobs(r.jobs || [])); }, []);
+      return (
+        <div className="p-6">
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search jobs" className="border p-2 mb-4 w-full" />
+          <div className="grid gap-4">
+            {jobs.filter(j => j.title.toLowerCase().includes(q.toLowerCase())).map(j => (
+              <div key={j._id} className="border p-4 rounded shadow">
+                <h3 className="font-bold">{j.title}</h3>
+                <p>{j.description}</p>
+                <small>{j.category} • {j.type}/{j.mode}</small>
+                <p>{j.budget} {j.currency}</p>
               </div>
-            </div>
+            ))}
           </div>
-        );
-      }
+        </div>
+      );
+    }
 
-      function Auth(){
-        const api = useApi();
-        const nav = useNavigate();
-        const [email, setEmail] = React.useState('demo@workchain.app');
-        const [password, setPassword] = React.useState('demo123');
-        const [username, setUsername] = React.useState('demo');
-        const [mode, setMode] = React.useState('login');
-        const [status, setStatus] = React.useState('');
+    function PostJob() {
+      const api = useApiAuthed();
+      const [title, setTitle] = React.useState('Logo Design');
+      const [description, setDescription] = React.useState('Need a modern logo');
+      const [category, setCategory] = React.useState('Design');
+      const [type, setType] = React.useState('online');
+      const [mode, setMode] = React.useState('remote');
+      const [budget, setBudget] = React.useState(5);
 
-        const doSignup = async () => {
-          const res = await api.post('/auth/signup', { username, email, password });
-          if(res.ok){ setMode('login'); setStatus('Signup done, please login'); } else setStatus(res.error||'Signup failed');
-        };
-        const doLogin = async () => {
-          const res = await api.post('/auth/login', { email, password });
-          if(res.ok){ localStorage.setItem('token', res.token); nav('/'); } else setStatus(res.error||'Login failed');
-        };
+      const submit = async () => {
+        const res = await api.post('/jobs', { title, description, category, type, mode, budget });
+        alert(res.ok ? 'Posted' : (res.error || 'Failed'));
+      };
 
-        return (
-          <div className="max-w-md mx-auto px-4">
-            <div className="bg-slate-900 p-6 rounded-2xl mt-6 border border-slate-800">
-              <h2 className="text-xl font-semibold">{mode==='login'?'Login':'Create account'}</h2>
-              {mode==='signup' && <input className="mt-3 w-full px-3 py-2 rounded-lg bg-slate-800" placeholder="Username" value={username} onChange={e=>setUsername(e.target.value)}/>}
-              <input className="mt-3 w-full px-3 py-2 rounded-lg bg-slate-800" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
-              <input className="mt-3 w-full px-3 py-2 rounded-lg bg-slate-800" type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)}/>
-              <div className="flex gap-3 mt-4">
-                {mode==='login' ? <button className="px-3 py-2 bg-indigo-600 rounded-lg" onClick={doLogin}>Login</button> : <button className="px-3 py-2 bg-indigo-600 rounded-lg" onClick={doSignup}>Sign Up</button>}
-                <button className="px-3 py-2 bg-slate-700 rounded-lg" onClick={()=> setMode(mode==='login'?'signup':'login')}>{mode==='login'?'Create account':'Have account? Login'}</button>
-              </div>
-              <p className="text-slate-400 mt-2">{status}</p>
-            </div>
-          </div>
-        );
-      }
+      return (
+        <div className="p-6 max-w-md mx-auto">
+          <h2 className="text-xl font-bold mb-4">Post a Job</h2>
+          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" className="border p-2 mb-2 w-full" />
+          <input value={category} onChange={e => setCategory(e.target.value)} placeholder="Category" className="border p-2 mb-2 w-full" />
+          <input value={budget} onChange={e => setBudget(e.target.value)} placeholder="Budget (PI)" className="border p-2 mb-2 w-full" />
+          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" className="border p-2 mb-2 w-full" />
+          <button onClick={submit} className="bg-indigo-600 text-white px-4 py-2 rounded w-full">Create</button>
+        </div>
+      );
+    }
 
-      function useApiAuthed(){
-        const token = localStorage.getItem('token');
-        const h = token ? { 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' } : { 'Content-Type':'application/json' };
-        const get = (u)=> fetch(API+'/api'+u, { headers:h }).then(r=>r.json());   // ✅ updated
-        const post = (u,b)=> fetch(API+'/api'+u,{ method:'POST', headers:h, body:JSON.stringify(b) }).then(r=>r.json());
-        const put = (u,b)=> fetch(API+'/api'+u,{ method:'PUT', headers:h, body:JSON.stringify(b) }).then(r=>r.json());
-        return { get, post, put };
-      }
+    function Wallet() {
+      const api = useApiAuthed();
+      const [amount, setAmount] = React.useState(1);
+      const [memo, setMemo] = React.useState('Escrow funding');
+      const create = async () => {
+        const r = await api.post('/payments/create', { amount: Number(amount), memo, metadata: { reason: 'escrow' } });
+        alert(r.ok ? 'Payment created (testnet)' : (r.error || 'Failed'));
+      };
+      return (
+        <div className="p-6 max-w-md mx-auto">
+          <h2 className="text-xl font-bold mb-4">Wallet</h2>
+          <input value={amount} onChange={e => setAmount(e.target.value)} className="border p-2 mb-2 w-full" />
+          <input value={memo} onChange={e => setMemo(e.target.value)} className="border p-2 mb-2 w-full" />
+          <button onClick={create} className="bg-indigo-600 text-white px-4 py-2 rounded w-full">Create Payment</button>
+        </div>
+      );
+    }
 
-      // Jobs, PostJob, Wallet, Profile remain SAME
-      // (no code removed — bas API url fix applied)
+    function Profile() {
+      const api = useApiAuthed();
+      const [me, setMe] = React.useState(null);
+      const [interests, setInterests] = React.useState('');
+      const [country, setCountry] = React.useState('Pakistan');
+      const [walletAddress, setWallet] = React.useState('');
 
-      function Jobs(){
-        const api = useApi();
-        const [jobs, setJobs] = React.useState([]);
-        const [q, setQ] = React.useState('');
-        React.useEffect(()=>{ api.get('/jobs').then(r=> setJobs(r.jobs||[])); },[]);
-        return (
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-              <div className="flex gap-3">
-                <input className="flex-1 px-3 py-2 rounded-lg bg-slate-800" placeholder="Search services..." value={q} onChange={e=>setQ(e.target.value)}/>
-                <Link className="px-3 py-2 rounded-lg bg-indigo-600" to="/post">Post a Job</Link>
-              </div>
-            </div>
-            <div className="grid md:grid-cols-3 gap-4 mt-4">
-              {jobs.filter(j=> j.title.toLowerCase().includes(q.toLowerCase())).map(j=>(
-                <div className="bg-slate-900 p-4 rounded-xl border border-slate-800" key={j._id}>
-                  <div className="text-lg font-semibold">{j.title}</div>
-                  <div className="text-slate-400">{j.description}</div>
-                  <div className="mt-2 text-sm text-slate-400">{j.category} • {j.type}/{j.mode}</div>
-                  <div className="mt-2 font-bold text-indigo-300">{j.budget} {j.currency}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      }
+      React.useEffect(() => { api.get('/users/me').then(r => setMe(r.user || null)); }, []);
 
-      function PostJob(){
-        const api = useApiAuthed();
-        const [title, setTitle] = React.useState('Logo Design');
-        const [description, setDescription] = React.useState('Need a modern logo');
-        const [category, setCategory] = React.useState('Design');
-        const [type, setType] = React.useState('online');
-        const [mode, setMode] = React.useState('remote');
-        const [budget, setBudget] = React.useState(5);
-        const submit = async ()=>{
-          const res = await api.post('/jobs', { title, description, category, type, mode, budget });
-          alert(res.ok ? 'Posted' : (res.error||'Failed'));
-        };
-        return (
-          <div className="max-w-3xl mx-auto px-4">
-            <div className="bg-slate-900 p-6 rounded-2xl mt-6 border border-slate-800">
-              <h2 className="text-xl font-semibold">Post a Job</h2>
-              <div className="grid md:grid-cols-2 gap-3 mt-3">
-                <input className="px-3 py-2 rounded-lg bg-slate-800" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Title"/>
-                <input className="px-3 py-2 rounded-lg bg-slate-800" value={category} onChange={e=>setCategory(e.target.value)} placeholder="Category"/>
-                <select className="px-3 py-2 rounded-lg bg-slate-800" value={type} onChange={e=>setType(e.target.value)}><option>online</option><option>offline</option></select>
-                <select className="px-3 py-2 rounded-lg bg-slate-800" value={mode} onChange={e=>setMode(e.target.value)}><option>remote</option><option>physical</option></select>
-                <input className="px-3 py-2 rounded-lg bg-slate-800" type="number" value={budget} onChange={e=>setBudget(e.target.value)} placeholder="Budget (PI)"/>
-              </div>
-              <textarea className="w-full px-3 py-2 rounded-lg bg-slate-800 mt-3" rows="4" value={description} onChange={e=>setDescription(e.target.value)} placeholder="Description"></textarea>
-              <button className="mt-3 px-3 py-2 bg-indigo-600 rounded-lg" onClick={submit}>Create</button>
-            </div>
-          </div>
-        );
-      }
+      const save = async () => {
+        const res = await api.put('/users/me', { interests: interests.split(',').map(s => s.trim()), country, walletAddress });
+        alert(res.ok ? 'Saved' : (res.error || 'Fail'));
+      };
 
-      function Wallet(){
-        const api = useApiAuthed();
-        const [amount, setAmount] = React.useState(1);
-        const [memo, setMemo] = React.useState('Escrow funding');
-        const create = async ()=>{
-          const r = await api.post('/payments/create', { amount:Number(amount), memo, metadata:{ reason:'escrow' } });
-          alert(r.ok ? 'Payment created (testnet)' : (r.error||'Failed'));
-        };
-        return (
-          <div className="max-w-3xl mx-auto px-4">
-            <div className="bg-slate-900 p-6 rounded-2xl mt-6 border border-slate-800">
-              <h2 className="text-xl font-semibold">Wallet</h2>
-              <div className="flex gap-3 mt-3">
-                <input className="flex-1 px-3 py-2 rounded-lg bg-slate-800" type="number" value={amount} onChange={e=>setAmount(e.target.value)} />
-                <input className="flex-1 px-3 py-2 rounded-lg bg-slate-800" value={memo} onChange={e=>setMemo(e.target.value)} />
-                <button className="px-3 py-2 bg-indigo-600 rounded-lg" onClick={create}>Create Payment</button>
-              </div>
-              <p className="text-slate-400 mt-2">Open in <b>Pi Browser</b> for full payment flow.</p>
-            </div>
-          </div>
-        );
-      }
+      return (
+        <div className="p-6 max-w-md mx-auto">
+          <h2 className="text-xl font-bold mb-4">My Profile</h2>
+          <input value={country} onChange={e => setCountry(e.target.value)} placeholder="Country" className="border p-2 mb-2 w-full" />
+          <input value={walletAddress} onChange={e => setWallet(e.target.value)} placeholder="Pi Wallet Address" className="border p-2 mb-2 w-full" />
+          <input value={interests} onChange={e => setInterests(e.target.value)} placeholder="Interests (comma separated)" className="border p-2 mb-2 w-full" />
+          <button onClick={save} className="bg-indigo-600 text-white px-4 py-2 rounded w-full">Save</button>
+        </div>
+      );
+    }
 
-      function Profile(){
-        const api = useApiAuthed();
-        const [me, setMe] = React.useState(null);
-        const [interests, setInterests] = React.useState('');
-        const [country, setCountry] = React.useState('Pakistan');
-        const [walletAddress, setWallet] = React.useState('');
-        React.useEffect(()=>{ api.get('/users/me').then(r=> setMe(r.user||null)); },[]);
-        const save = async ()=>{
-          const res = await api.put('/users/me', { interests: interests.split(',').map(s=>s.trim()), country, walletAddress });
-          alert(res.ok?'Saved':(res.error||'Fail'));
-        };
-        return (
-          <div className="max-w-3xl mx-auto px-4">
-            <div className="bg-slate-900 p-6 rounded-2xl mt-6 border border-slate-800">
-              <h2 className="text-xl font-semibold">My Profile</h2>
-              <div className="grid md:grid-cols-2 gap-3 mt-3">
-                <input className="px-3 py-2 rounded-lg bg-slate-800" value={country} onChange={e=>setCountry(e.target.value)} placeholder="Country"/>
-                <input className="px-3 py-2 rounded-lg bg-slate-800" value={walletAddress} onChange={e=>setWallet(e.target.value)} placeholder="Pi Wallet Address"/>
-                <input className="px-3 py-2 rounded-lg bg-slate-800 md:col-span-2" value={interests} onChange={e=>setInterests(e.target.value)} placeholder="Interests (comma separated)"/>
-              </div>
-              <button className="mt-3 px-3 py-2 bg-indigo-600 rounded-lg" onClick={save}>Save</button>
-            </div>
-          </div>
-        );
-      }
+    // ---------------- APP ----------------
+    function App() {
+      return (
+        <BrowserRouter>
+          <Nav />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/jobs" element={<Jobs />} />
+            <Route path="/post" element={<PostJob />} />
+            <Route path="/wallet" element={<Wallet />} />
+            <Route path="/profile" element={<Profile />} />
+          </Routes>
+        </BrowserRouter>
+      );
+    }
 
-      function App(){
-        return (
-          <ThemeProvider>
-            <BrowserRouter>
-              <Nav />
-              <Routes>
-                <Route path="/" element={<Home/>} />
-                <Route path="/auth" element={<Auth/>} />
-                <Route path="/jobs" element={<Jobs/>} />
-                <Route path="/post" element={<PostJob/>} />
-                <Route path="/wallet" element={<Wallet/>} />
-                <Route path="/profile" element={<Profile/>} />
-              </Routes>
-            </BrowserRouter>
-          </ThemeProvider>
-        );
-      }
-      ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-    </script>
-  </body>
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+  </script>
+</body>
 </html>
