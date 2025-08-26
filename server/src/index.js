@@ -50,7 +50,7 @@ app.use(express.json());
 
 // ✅ API Routes
 app.get('/health', (req, res) => {
-  res.json({ ok: true });
+  res.json({ status: "ok", message: "Backend is running 🚀" });
 });
 
 app.use('/api/auth', authRoutes);
