@@ -21,7 +21,7 @@
     <div id="root"></div>
     <script type="text/babel">
       const { BrowserRouter, Routes, Route, Link, useNavigate } = ReactRouterDOM;
-      const API = window.REACT_APP_API_URL || location.origin;
+      const API = "https://workchain-project-00.onrender.com"; // ✅ fixed backend URL
 
       const ThemeCtx = React.createContext();
       function ThemeProvider({children}){
@@ -37,9 +37,9 @@
       function useApi(){
         const token = localStorage.getItem('token');
         const h = token ? { 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' } : { 'Content-Type':'application/json' };
-        const get = (u)=> fetch('/api'+u, { headers:h }).then(r=>r.json());
-        const post = (u,b)=> fetch('/api'+u,{ method:'POST', headers:h, body:JSON.stringify(b) }).then(r=>r.json());
-        const put = (u,b)=> fetch('/api'+u,{ method:'PUT', headers:h, body:JSON.stringify(b) }).then(r=>r.json());
+        const get = (u)=> fetch(API+'/api'+u, { headers:h }).then(r=>r.json());   // ✅ updated
+        const post = (u,b)=> fetch(API+'/api'+u,{ method:'POST', headers:h, body:JSON.stringify(b) }).then(r=>r.json());
+        const put = (u,b)=> fetch(API+'/api'+u,{ method:'PUT', headers:h, body:JSON.stringify(b) }).then(r=>r.json());
         return { get, post, put };
       }
 
@@ -112,11 +112,14 @@
       function useApiAuthed(){
         const token = localStorage.getItem('token');
         const h = token ? { 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' } : { 'Content-Type':'application/json' };
-        const get = (u)=> fetch('/api'+u, { headers:h }).then(r=>r.json());
-        const post = (u,b)=> fetch('/api'+u,{ method:'POST', headers:h, body:JSON.stringify(b) }).then(r=>r.json());
-        const put = (u,b)=> fetch('/api'+u,{ method:'PUT', headers:h, body:JSON.stringify(b) }).then(r=>r.json());
+        const get = (u)=> fetch(API+'/api'+u, { headers:h }).then(r=>r.json());   // ✅ updated
+        const post = (u,b)=> fetch(API+'/api'+u,{ method:'POST', headers:h, body:JSON.stringify(b) }).then(r=>r.json());
+        const put = (u,b)=> fetch(API+'/api'+u,{ method:'PUT', headers:h, body:JSON.stringify(b) }).then(r=>r.json());
         return { get, post, put };
       }
+
+      // Jobs, PostJob, Wallet, Profile remain SAME
+      // (no code removed — bas API url fix applied)
 
       function Jobs(){
         const api = useApi();

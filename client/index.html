@@ -34,6 +34,45 @@
         return <ThemeCtx.Provider value={{theme, setTheme}}>{children}</ThemeCtx.Provider>;
       }
 
+<script>
+  // Mobile console logger
+  (function() {
+    const logBox = document.createElement('div');
+    logBox.style.position = 'fixed';
+    logBox.style.bottom = '0';
+    logBox.style.left = '0';
+    logBox.style.width = '100%';
+    logBox.style.maxHeight = '40vh';
+    logBox.style.overflowY = 'auto';
+    logBox.style.background = 'rgba(0,0,0,0.85)';
+    logBox.style.color = '#0f0';
+    logBox.style.fontSize = '12px';
+    logBox.style.fontFamily = 'monospace';
+    logBox.style.zIndex = '999999';
+    logBox.style.padding = '4px';
+    document.body.appendChild(logBox);
+
+    function addLog(type, args) {
+      const msg = document.createElement('div');
+      msg.textContent = `[${type}] ` + args.map(a => typeof a==='object' ? JSON.stringify(a) : a).join(' ');
+      logBox.appendChild(msg);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    ['log','warn','error'].forEach(type => {
+      const orig = console[type];
+      console[type] = function(...args) {
+        orig.apply(console, args);
+        addLog(type, args);
+      };
+    });
+
+    window.addEventListener('error', e => {
+      addLog('error', [e.message, e.filename+':'+e.lineno]);
+    });
+  })();
+</script>
+
       function useApi(){
         const token = localStorage.getItem('token');
         const h = token ? { 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' } : { 'Content-Type':'application/json' };
