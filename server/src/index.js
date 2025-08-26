@@ -48,11 +48,17 @@ io.on('connection', (socket) => {
 app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(express.json());
 
-// ✅ API Routes
+// ✅ Root route
+app.get('/', (req, res) => {
+  res.json({ status: "ok", message: "Backend is running 🚀" });
+});
+
+// ✅ Health route
 app.get('/health', (req, res) => {
   res.json({ status: "ok", message: "Backend is running 🚀" });
 });
 
+// ✅ API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/jobs', jobsRoutes);
@@ -64,7 +70,7 @@ app.use('/api/chat', chatRoutes);
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(MONGO_URI)
   .then(() => {
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
