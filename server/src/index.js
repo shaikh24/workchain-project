@@ -20,7 +20,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
-const io = new SocketIOServer(server, { 
+const io = new SocketIOServer(server, {
   cors: { origin: process.env.CORS_ORIGIN || "*" }
 });
 
@@ -49,7 +49,10 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(express.json());
 
 // ✅ API Routes
-app.get('/health', (req, res) => res.json({ ok: true }));
+app.get('/health', (req, res) => {
+  res.json({ ok: true });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/jobs', jobsRoutes);
@@ -57,38 +60,16 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/chat', chatRoutes);
 
-// ✅ Serve static frontend (agar client folder public hai)
-const publicDir = path.join(__dirname, '../public');
-app.use(express.static(publicDir));
-app.get('*', (req, res) =>
-  res.sendFile(path.join(publicDir, 'index.html'))
-);
+// ✅ Connect MongoDB and start server
+const PORT = process.env.PORT || 5000;
+const MONGO_URI = process.env.MONGO_URI;
 
-const PORT = process.env.PORT || 4000;
-
-// ✅ Start Server
-async function start() {
-  if (!process.env.JWT_SECRET) {
-    console.error('❌ Missing JWT_SECRET in .env');
-    process.exit(1);
-  }
-
-  if (!process.env.MONGO_URI) {
-    console.error('❌ Missing MONGO_URI in .env');
-    process.exit(1);
-  }
-
-  try {
-    await mongoose.connect(process.env.MONGO_URI, { dbName: "workchain" });
-    console.log('✅ MongoDB connected');
-
-    server.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Server running at http://0.0.0.0:${PORT}`);
+mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
     });
-  } catch (err) {
-    console.error('❌ MongoDB connection failed:', err.message);
-    process.exit(1);
-  }
-}
-
-start();
+  })
+  .catch(err => {
+    console.error("❌ MongoDB connection error:", err);
+  });
