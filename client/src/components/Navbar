@@ -1,0 +1,24 @@
+import { Link } from "react-router-dom";
+
+export default function Navbar() {
+  return (
+    <nav className="bg-white shadow-md sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+        <Link to="/" className="text-xl font-bold text-indigo-600">
+          WorkChain
+        </Link>
+        <div className="space-x-4 hidden md:flex">
+          <Link to="/" className="hover:text-indigo-600">Home</Link>
+          <Link to="/jobs" className="hover:text-indigo-600">Jobs</Link>
+          <Link to="/wallet" className="hover:text-indigo-600">Wallet</Link>
+          <Link to="/messages" className="hover:text-indigo-600">Messages</Link>
+          <Link to="/profile/1" className="hover:text-indigo-600">Profile</Link>
+        </div>
+        <div className="flex gap-4">
+  <a href="/login" className="hover:text-indigo-500">Login</a>
+  <a href="/signup" className="hover:text-indigo-500">Sign Up</a>
+</div>
+      </div>
+    </nav>
+  );
+}
